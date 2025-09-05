@@ -13,18 +13,28 @@ VOLUME_LIST = [f'{HOST_SOURCE_IMGS}:{CONTAINER_SOURCE_IMGS}', f'{HOST_PROCESSED_
 
 client = docker.from_env()
 
-def compile_command(source_img: str, dest_img: str | None, algorithm: str, resize: str | None="", remap:str | None=""):
-    return f'{source_img} {resize} {algorithm} {remap} {dest_img}'
+def compile_command(source_img: str, dest_img: str | None, algorithm: str | None = "", resize: str | None = "", remap: str | None = "", last_cmd: bool = True):
+    resize_str = f'-resize {resize}' if resize else ''
+    remap_str = f'-remap {remap}' if remap else ''
+    return f'{CONTAINER_SOURCE_IMGS}/{source_img} {resize_str} {algorithm} {remap_str} {CONTAINER_PROCESSED_IMGS if last_cmd else CONTAINER_SOURCE_IMGS}/{dest_img}'
 
 test_cmd = compile_command(
-    CONTAINER_SOURCE_IMGS+'/paris-texas.jpg', 
-    CONTAINER_PROCESSED_IMGS+'/paris-1.jpg',
+    'paris-texas.jpg', 
+    'paris-1.jpg',
     algorithm="-dither FloydSteinberg", 
-    remap="-remap pattern:gray50"
+    remap="pattern:gray50"
     )
+
+def make_blocky():
+    cmd_1 = compile_command('roman-dmitry.png', '_tmp.png', algorithm='-scale 5%', last_cmd=False)
+    cmd_2 = compile_command('_tmp.png', 'blocky3.png', algorithm='-scale 2000% -filter point', remap='pattern:gray50')
     
-client.containers.run(IMAGEMAGICK_CONTAINER,
-                      test_cmd,
+    client.containers.run(IMAGEMAGICK_CONTAINER,
+                      cmd_1,
+                      volumes=VOLUME_LIST)
+    client.containers.run(IMAGEMAGICK_CONTAINER,
+                      cmd_2,
                       volumes=VOLUME_LIST)
 
+make_blocky()
 # if __name__ == '__main__' : 
