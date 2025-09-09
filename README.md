@@ -20,3 +20,7 @@ Another option could be to assign to every pixel in a x times x square the same 
 Very big square could make for nice graphics
 Coarse squares could also be obtained by scaling down the quality 
 To have a more digital effect chose the top colors (or some nice ones) and assign to every pixel closest Hamming palette's
+
+## FastAPI
+
+Largely based on https://betterstack.com/community/guides/scaling-python/uploading-files-using-fastapi/

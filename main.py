@@ -47,7 +47,6 @@ async def upload_single_file(file: UploadFile = File(...)):
         'content_type': file.content_type,
         'size': file.size,
         'upload_time': datetime.now(timezone.utc).isoformat(),
-        'location': str(file_path)
     }
 
 
