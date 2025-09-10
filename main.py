@@ -9,15 +9,19 @@ from validators import ImageValidator
 from tasks import dither, celery_app
 from celery.result import AsyncResult
 
+import os
+
 UPLOAD_DIR = Path('uploads')
 UPLOAD_DIR.mkdir(exist_ok=True)
 
 PROCESSED_DIR = Path('processed')
 PROCESSED_DIR.mkdir(exist_ok=True)
 
+REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
+
 app = FastAPI(title='Dithering love APIs')
 
-r = Redis(host='localhost', port=6379, decode_responses=True)
+r = Redis(host='redis', port=6379, decode_responses=True)
 
 img_validator = ImageValidator(max_size=25 * 1024 * 1024)
 

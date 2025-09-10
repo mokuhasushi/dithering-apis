@@ -24,3 +24,4 @@ To have a more digital effect chose the top colors (or some nice ones) and assig
 ## FastAPI
 
 Largely based on https://betterstack.com/community/guides/scaling-python/uploading-files-using-fastapi/
+https://testdriven.io/courses/fastapi-celery/docker/
