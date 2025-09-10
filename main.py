@@ -1,15 +1,23 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
+from redis import Redis
 from pathlib import Path
 import shutil
 import uuid
 from datetime import datetime, timezone
 
 from validators import ImageValidator
+from tasks import dither, celery_app
+from celery.result import AsyncResult
 
 UPLOAD_DIR = Path('uploads')
 UPLOAD_DIR.mkdir(exist_ok=True)
 
+PROCESSED_DIR = Path('processed')
+PROCESSED_DIR.mkdir(exist_ok=True)
+
 app = FastAPI(title='Dithering love APIs')
+
+r = Redis(host='localhost', port=6379, decode_responses=True)
 
 img_validator = ImageValidator(max_size=25 * 1024 * 1024)
 
@@ -40,6 +48,9 @@ async def upload_single_file(file: UploadFile = File(...)):
             detail=f'Failed to save file: {str(e)}'
         )
     
+    result = dither.delay(unique_filename, str(UPLOAD_DIR), str(PROCESSED_DIR))
+    r.set(unique_filename, result.id)
+    
     return {
         'success': True,
         'original_filename': file.filename,
@@ -49,6 +60,19 @@ async def upload_single_file(file: UploadFile = File(...)):
         'upload_time': datetime.now(timezone.utc).isoformat(),
     }
 
+@app.get('/status/{filename}')
+async def check_status(filename: str):
+    uuid = r.get(filename)
+    if not uuid:
+        return HTTPException(
+            status_code=404,
+            detail={'message': 'No task associated with this filename'}
+        )
+    
+    res = AsyncResult(uuid, app=celery_app)
+    print(res)
+    state = res.status
+    return {'task_status': state}
 
 @app.get('/')
 async def root():
