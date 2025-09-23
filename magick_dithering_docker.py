@@ -25,9 +25,9 @@ test_cmd = compile_command(
     remap="pattern:gray50"
     )
 
-def make_blocky():
-    cmd_1 = compile_command('roman-dmitry.png', '_tmp.png', algorithm='-scale 5%', last_cmd=False)
-    cmd_2 = compile_command('_tmp.png', 'blocky3.png', algorithm='-scale 2000% -filter point', remap='pattern:gray50')
+def make_blocky(source, dest):
+    cmd_1 = compile_command(source, '_tmp.png', algorithm='-scale 10%', last_cmd=False)
+    cmd_2 = compile_command('_tmp.png', dest, algorithm='-scale 1000% -filter point', remap='pattern:gray50')
     
     client.containers.run(IMAGEMAGICK_CONTAINER,
                       cmd_1,
@@ -36,5 +36,5 @@ def make_blocky():
                       cmd_2,
                       volumes=VOLUME_LIST)
 
-make_blocky()
+# make_blocky()
 # if __name__ == '__main__' : 

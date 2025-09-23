@@ -1,12 +1,14 @@
-version: '3.8'
-
 services:
   web: 
     build:
       context: .
       dockerfile: ./Dockerfile
     image: niotir/fastapi_dithering_web
-    command: uvicorn main:app --reload  --host 0.0.0.0
+    entrypoint: ["/bin/sh","-c"]
+    command:
+      - |
+       celery -A tasks worker --loglevel=info --detach
+       uvicorn main:app --reload  --host 0.0.0.0
     volumes: 
       - .:/app
     ports: 
@@ -19,16 +21,16 @@ services:
   redis: 
     image: redis:8.2.1-alpine
   
-  celery_worker:
-    build: 
-      context: .
-      dockerfile: ./Dockerfile
-    image: niotir/fastapi_dithering_worker
-    command: celery -A tasks worker --loglevel=info
-    volumes: 
-      - .:/app
-    env_file:
-      - .env
-    depends_on:
-      - redis
+  # celery_worker:
+  #   build: 
+  #     context: .
+  #     dockerfile: ./Dockerfile
+  #   image: niotir/fastapi_dithering_worker
+  #   command: celery -A tasks worker --loglevel=info
+  #   volumes: 
+  #     - .:/app
+  #   env_file:
+  #     - .env
+  #   depends_on:
+  #     - redis
 

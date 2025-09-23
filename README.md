@@ -25,3 +25,6 @@ To have a more digital effect chose the top colors (or some nice ones) and assig
 
 Largely based on https://betterstack.com/community/guides/scaling-python/uploading-files-using-fastapi/
 https://testdriven.io/courses/fastapi-celery/docker/
+
+docker tag niotir/fastapi_dithering_web \                                                       
+    europe-west1-docker.pkg.dev/hardy-antonym-471808-u8/niotir/fastapi_dithering_web:0.3
