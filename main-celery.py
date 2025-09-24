@@ -11,6 +11,8 @@ from celery.result import AsyncResult
 
 import os
 
+# This version is working in local, using 3 containers. Using Cloud run is not obvious with this setup. Maybe K8s?
+
 UPLOAD_DIR = Path('uploads')
 UPLOAD_DIR.mkdir(exist_ok=True)
 
