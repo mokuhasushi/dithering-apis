@@ -1,37 +1,18 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
-from redis import Redis
 from pathlib import Path
-import shutil
 import uuid
 from datetime import datetime, timezone
 
 from validators import ImageValidator
-from tasks import dither, celery_app
-from celery.result import AsyncResult
 
 import os
+from magick_dithering import dither_blob
 
-UPLOAD_DIR = Path('uploads')
-UPLOAD_DIR.mkdir(exist_ok=True)
+from google.cloud import storage
 
-PROCESSED_DIR = Path('processed')
-PROCESSED_DIR.mkdir(exist_ok=True)
-
-REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
-REDIS_PORT = os.environ.get('REDIS_PORT', 6379)
-REDIS_USERNAME = os.environ.get('REDIS_USERNAME', None)
-REDIS_PASSWORD = os.environ.get('REDIS_PASSWORD', None)
+BUCKET_NAME = os.environ.get('GC_BUCKET')
 
 app = FastAPI(title='Dithering love APIs')
-
-r = Redis(host=REDIS_HOST, port=6379, decode_responses=True)
-r = Redis(
-    host=REDIS_HOST,
-    port=REDIS_PORT,
-    decode_responses=True,
-    username=REDIS_USERNAME,
-    password=REDIS_PASSWORD,
-)
 
 img_validator = ImageValidator(max_size=25 * 1024 * 1024)
 
@@ -52,43 +33,82 @@ async def upload_single_file(file: UploadFile = File(...)):
     file_ext = Path(file.filename).suffix
     file_uuid = uuid.uuid4()
     unique_filename = f'{file_uuid}{file_ext}'
-    file_path = UPLOAD_DIR / unique_filename
 
     try:
-        with open(file_path, 'wb') as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        f = await file.read()
+        img_blob = await dither_blob(f)
     except Exception as e:
         raise HTTPException(
             status_code=500, 
-            detail=f'Failed to save file: {str(e)}'
+            detail=f'Failed to dither image: {str(e)}'
         )
-    
-    result = dither.delay(unique_filename, str(UPLOAD_DIR), str(PROCESSED_DIR))
-    r.set(str(file_uuid), result.id)
+
+    # upload
+    try:
+        processed_url = upload_blob_from_string(img_blob, unique_filename)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, 
+            detail=f'Failed to upload file: {str(e)}'
+        )
+
     
     return {
         'success': True,
         'original_filename': file.filename,
         'stored_filename': file_uuid,
+        'processed_url': processed_url,
         'content_type': file.content_type,
         'size': file.size,
         'upload_time': datetime.now(timezone.utc).isoformat(),
     }
 
-@app.get('/status/{filename}')
-async def check_status(filename: str):
-    uuid = r.get(filename)
-    if not uuid:
-        return HTTPException(
-            status_code=404,
-            detail={'message': 'No task associated with this filename'}
-        )
-    
-    res = AsyncResult(uuid, app=celery_app)
-    state = res.status
-    return {'task_status': state}
 
 @app.get('/')
 async def root():
     return {'message': 'Dithering APIs: upload image at /upload/single'}
 
+def upload_blob_from_file(file):
+    """Uploads a file to the bucket."""
+
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(BUCKET_NAME)
+    blob = bucket.blob(f"uploaded/{file.filename}")
+
+    blob.upload_from_file(file.file)
+
+    print(
+        f"File {file.filename} uploaded!"
+    )
+
+    return blob.public_url
+
+def upload_blob_from_string(img_blob, filename):
+    """Uploads a file to the bucket."""
+
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(BUCKET_NAME)
+    blob = bucket.blob(f"uploaded/{filename}")
+
+    blob.upload_from_string(img_blob)
+
+    print(
+        f"File {filename} uploaded!"
+    )
+
+    return blob.public_url
+
+def upload_blob(source_file_name, destination_blob_name):
+    """Uploads a file to the bucket."""
+
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(BUCKET_NAME)
+    blob = bucket.blob(destination_blob_name)
+
+    blob.upload_from_filename(source_file_name)
+
+    print(
+        f"File {source_file_name} uploaded to {destination_blob_name}."
+    )
+
+    return blob.public_url

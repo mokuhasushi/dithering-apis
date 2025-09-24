@@ -4,22 +4,18 @@ services:
       context: .
       dockerfile: ./Dockerfile
     image: niotir/fastapi_dithering_web
-    entrypoint: ["/bin/sh","-c"]
-    command:
-      - |
-       celery -A tasks worker --loglevel=info --detach
-       uvicorn main:app --reload  --host 0.0.0.0
+    command: uvicorn main:app --host 0.0.0.0 --port 8080
     volumes: 
       - .:/app
     ports: 
-      - 8010:8000
+      - 8080:8080
     env_file:
       - .env
-    depends_on:
-      - redis
+    # depends_on:
+    #   - redis
 
-  redis: 
-    image: redis:8.2.1-alpine
+  # redis: 
+  #   image: redis:8.2.1-alpine
   
   # celery_worker:
   #   build: 

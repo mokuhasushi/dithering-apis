@@ -12,8 +12,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . . 
 
-COPY ./scripts/start-web ./start-web
-RUN chmod +x ./start-web
+ENV PORT=8080
 
-COPY ./scripts/start-worker ./start-worker
-RUN chmod +x ./start-worker
+CMD uvicorn main:app --host 0.0.0.0 --port $PORT

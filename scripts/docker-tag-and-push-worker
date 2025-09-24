@@ -1,7 +1,4 @@
 #!/bin/bash
 
-docker tag niotir/fastapi_dithering_web europe-west1-docker.pkg.dev/hardy-antonym-471808-u8/niotir/fastapi_dithering_web:$1
 docker tag niotir/fastapi_dithering_worker europe-west1-docker.pkg.dev/hardy-antonym-471808-u8/niotir/fastapi_dithering_worker:$1
-
-docker push europe-west1-docker.pkg.dev/hardy-antonym-471808-u8/niotir/fastapi_dithering_web:$1                            
 docker push europe-west1-docker.pkg.dev/hardy-antonym-471808-u8/niotir/fastapi_dithering_worker:$1                            
